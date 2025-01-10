@@ -1,3 +1,19 @@
+---
+title: "movies recommendation"
+author: "Carpentier Lola, De Oliveira Corentin, Reynaud Valentin"
+date: "2025-01-10"
+output:
+    pdf_document:
+        toc: true 
+    html_document:
+        toc: true 
+___
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, error = FALSE, collaps= TRUE)
+```
+
+
 # Movie-recommendation
 Hands-on for APE masters students 
 

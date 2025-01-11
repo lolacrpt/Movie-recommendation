@@ -1,21 +1,17 @@
 ---
-title: "movies recommendation"
+title: "Système interactif de recommandation de films"
 author: "Carpentier Lola, De Oliveira Corentin, Reynaud Valentin"
 date: "2025-01-10"
 output:
-    pdf_document:
-        toc: true 
-    html_document:
-        toc: true 
-___
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, error = FALSE, collaps= TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, error = FALSE, collapse = TRUE)
 ```
 
-
-# Movie-recommendation
-Hands-on for APE masters students 
 
 # Introduction
 
@@ -32,7 +28,8 @@ Passons maintenant au détail de la construction du programme, que nous allons e
 
 Dans la première partie du code, nous installons et chargeons les packages nécessaires: **Shiny** : pour créer l'interface utilisateur et le serveur interactif. **Readr** : pour lire les données contenues dans le fichier pelletier_emotions.csv.
 
-```{r packages, message=FALSE, warning=FALSE, include=FALSE, results='hide'}
+```{r packages, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE, results='hide'}
+
 install.packages("shiny")
 install.packages("readr")
 library(shiny)
@@ -44,7 +41,7 @@ library(readr)
 
 Voici la ligne de code importante:
 
-```{r donnees, message=FALSE, warning=FALSE, include=FALSE }
+```{r donnees, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
 movies <- read_csv("pelletier_emotions.csv")
 
 ```
@@ -55,16 +52,15 @@ Ce fichier contient les informations sur les films, comme le titre, le genre, la
 
 Ensuite, nous normalisons les données pour nous assurer que les tags d'émotions sont tous en minuscules grâce à la ligne :
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+```{r normalisation,eval=FALSE, message=FALSE, warning=FALSE}
 movies$emotion_tags <- trimws(tolower(movies$emotion_tags))
 
 ```
 
 # Interface utilisateur
+L’interface utilisateur, ou **UI**, est construite avec **fluidPage**. Elle est divisée en deux sections:
 
-L’interface utilisateur, ou **UI**, est construite avec **fluidPage**. Elle est divisée en deux sections :
-
-1.  **Le panneau latéral (sidebarPanel)** :
+1.  **Le panneau latéral (sidebarPanel)**:
 
     -   L’utilisateur peut sélectionner une émotion via une liste déroulante.
 
@@ -74,23 +70,8 @@ L’interface utilisateur, ou **UI**, est construite avec **fluidPage**. Elle es
 
     -   Enfin, un bouton déclenche l’affichage des recommandations.
 
-        **Exemple de composant de l’interface :**
-
-```{r}
-selectInput("emotion", "🎭 Choisissez une émotion :", choices = unique(movies$emotion_tags))
-```
-
-2.  **Le panneau principal (mainPanel)** :
-
-    -   Il affiche les recommandations dans une table.
-
-    -   Une zone pour valider ou rejeter les recommandations apparaît dynamiquement.
-
-    -   Après validation, des cases à cocher permettent de choisir un ou plusieurs films.
-
-    -   Enfin, un bouton ouvre les bande-annonces des films sélectionnés.
-
-```{r interface, message=FALSE, warning=FALSE, include=FALSE}
+      
+```{r panneau latéral, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
 ui <- fluidPage(
   titlePanel("🎬 Système de Recommandation de Films"),
   sidebarLayout(
@@ -102,7 +83,19 @@ ui <- fluidPage(
                    choices = c("Moins de 2h" = "short", "Plus de 2h" = "long")),
       numericInput("num_recommendations", "🔢 Nombre de recommandations :", value = 3, min = 1),
       actionButton("recommend", "Obtenir des recommandations 🎬"),
-      uiOutput("feedback_ui")  # Section pour valider ou rejeter les recommandations
+```
+
+2.  **Le panneau principal (mainPanel)**:
+
+    -   Il affiche les recommandations dans une table.
+
+    -   Une zone pour valider ou rejeter les recommandations apparaît dynamiquement.
+
+    -   Après validation, des cases à cocher permettent de choisir un ou plusieurs films.
+
+    -   Enfin, un bouton ouvre les bande-annonces des films sélectionnés.
+```{r panneau principal,eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
+  uiOutput("feedback_ui")  # Section pour valider ou rejeter les recommandations
     ),
     mainPanel(
       h3("📋 Recommandations :"),
@@ -115,34 +108,55 @@ ui <- fluidPage(
 )
 ```
 
+
 # Serveur
 
-```{r serveur, message=FALSE, warning=FALSE, include=FALSE}
+La partie serveur est le cœur du programme.
+```{r serveur, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
 server <- function(input, output, session) {
-  # Stocker les recommandations
-  recommendations <- reactiveVal(data.frame())  # Pour stocker les recommandations actuelles
-  
-  # Générer les recommandations quand le bouton est cliqué
-  observeEvent(input$recommend, {
+```
+
+Elle gère toutes les interactions de l'utilisateur. Nous allons vous expliquer les fonctionnalités principales. 
+1. **Génération des recommandations** Lorsque l’utilisateur clique sur le bouton "Obtenir des recommandations", le programme applique des filtres: 
+
+- *Filtrage par émotion* : Il sélectionne les films qui correspondent à l’émotion choisie: 
+```{r filtrage émotions, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
+   observeEvent(input$recommend, {
     filtered <- movies[movies$emotion_tags == input$emotion, ]
-    
-    if (input$duration == "short") {
+```
+
+
+-   *Filtrage par durée* : Ensuite, il restreint les résultats selon la durée sélectionnée :
+```{r filtrage durée, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
+ if (input$duration == "short") {
       filtered <- filtered[filtered$duration <= 120, ]
     } else if (input$duration == "long") {
       filtered <- filtered[filtered$duration > 120, ]
     }
-    
-    # Sélectionner un nombre donné de films
-    if (nrow(filtered) > 0) {
+
+```
+
+
+-   *Nombre de recommandations* : Enfin, il limite le nombre de films affichés en sélectionnant un échantillon aléatoire Les recommandations sont ensuite stockées dans une variable réactive. 
+
+```{r filtrage nombre, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
+ if (nrow(filtered) > 0) {
       filtered <- filtered[sample(nrow(filtered), min(input$num_recommendations, nrow(filtered))), ]
     }
     
-    # Mettre à jour les recommandations
-    recommendations(filtered)
-  })
-  
-  # Afficher les recommandations
-  output$recommendations <- renderTable({
+```
+
+Les recommandations sont ensuite stockées dans une variable réactive: 
+```{r stockage, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
+recommendations <- reactiveVal(filtered)
+
+```
+
+
+2.  **Affichage des recommandations** Les recommandations sont affichées sous forme de table dynamique dans l'interface principale. Cette table montre les titres des films, leur genre, leur durée, et un lien vers la bande-annonce.
+```{r affichage, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
+
+ output$recommendations <- renderTable({
     req(recommendations())
     recs <- recommendations()
     if (nrow(recs) > 0) {
@@ -151,9 +165,12 @@ server <- function(input, output, session) {
       NULL
     }
   }, rownames = TRUE)
-  
-  # Demander si les recommandations conviennent
-  output$feedback_ui <- renderUI({
+
+```
+
+3.  **Validation ou rejet des recommandations** Une fois que les recommandations sont affichées, l’utilisateur doit indiquer s’il est satisfait ou non grâce à deux boutons ("Oui" ou "Non").
+```{r validation, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE }
+ output$feedback_ui <- renderUI({
     if (nrow(recommendations()) > 0) {
       tagList(
         h4("🔁 Ces recommandations vous conviennent-elles ?"),
@@ -162,14 +179,18 @@ server <- function(input, output, session) {
       )
     }
   })
-  
-  # Réinitialiser les recommandations si "Non" est sélectionné
-  observeEvent(input$no, {
+```
+
+Si l’utilisateur clique sur "Non", les recommandations sont réinitialisées, et le processus recommence.
+```{r réinitialisation,  eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
+observeEvent(input$no, {
     showNotification("🔄 Nouvelles recommandations en cours...", type = "message")
     recommendations(data.frame())  # Réinitialiser les recommandations
   })
-  
-  # Afficher les cases à cocher pour choisir un film uniquement après validation
+```
+
+4.  **Sélection des films préférés** Si les recommandations conviennent, une liste de cases à cocher apparaît pour permettre à l’utilisateur de sélectionner un ou plusieurs films parmi les options proposées:
+```{r préférences, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
   output$choose_movie_ui <- renderUI({
     req(input$yes)  # Attendre la validation des recommandations
     recs <- recommendations()
@@ -179,7 +200,10 @@ server <- function(input, output, session) {
     }
   })
   
-  # Ouvrir les bande-annonces des films cochés
+
+```
+5.  **Ouverture des bande-annonces** Lorsque l’utilisateur clique sur "Ouvrir la bande-annonce 🎥", les liens vers les bande-annonces des films sélectionnés sont ouverts dans le navigateur:
+```{r bande annonces, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
   observeEvent(input$open_trailer, {
     req(input$chosen_movies)  # S'assurer qu'au moins un film a été coché
     recs <- recommendations()
@@ -193,27 +217,8 @@ server <- function(input, output, session) {
   })
 }
 
+
 ```
-
-La partie serveur est le cœur du programme. Elle gère toutes les interactions de l'utilisateur. Nous allons vous expliquer les fonctionnalités principales. 
-1. **Génération des recommandations** Lorsque l’utilisateur clique sur le bouton "Obtenir des recommandations", le programme applique des filtres: 
-- *Filtrage par émotion* : Il sélectionne les films qui correspondent à l’émotion choisie
-
-- *Filtrage par durée* : Ensuite, il restreint les résultats selon la durée sélectionnée
-
-- *Nombre de recommandations* : Enfin, il limite le nombre de films affichés en sélectionnant un échantillon aléatoire
-Les recommandations sont ensuite stockées dans une variable réactive. 
-
-2.  **Affichage des recommandations** Les recommandations sont affichées sous forme de table dynamique dans l'interface principale.
-Cette table montre les titres des films, leur genre, leur durée, et un lien vers la bande-annonce. 
-
-3. **Validation ou rejet des recommandations** Une fois que les recommandations sont affichées, l’utilisateur doit indiquer s’il est satisfait ou non grâce à deux boutons ("Oui" ou "Non"). Si l’utilisateur clique sur "Non", les recommandations sont réinitialisées, et le processus recommence.
-
-4.  **Sélection des films préférés** Si les recommandations conviennent, une liste de cases à cocher apparaît pour permettre à l’utilisateur de sélectionner un ou plusieurs films parmi les options proposées:
-
-
-5.  **Ouverture des bande-annonces** Lorsque l’utilisateur clique sur "Ouvrir la bande-annonce 🎥", les liens vers les bande-annonces des films sélectionnés sont ouverts dans le navigateur:
-
 
 # Démonstration de l'application
 

@@ -57,6 +57,25 @@ movies$emotion_tags <- trimws(tolower(movies$emotion_tags))
 
 ```
 
+ # Ajout du script pour les confettis
+ ```{r panneau latéral, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
+  tags$head(
+    tags$script(src = "https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js")
+  ),
+  ```
+  # Script pour lancer les confettis à l'ouverture
+```{r panneau latéral, eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
+  tags$script(HTML("
+    window.onload = function() {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    };
+  ")),
+```
+
 # Interface utilisateur
 L’interface utilisateur, ou **UI**, est construite avec **fluidPage**. Elle est divisée en deux sections:
 

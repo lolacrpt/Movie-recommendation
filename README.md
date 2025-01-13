@@ -8,7 +8,7 @@ output:
   pdf_document: default
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, eval=FALSE,message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, error = FALSE, collapse = TRUE)
 ```
 
